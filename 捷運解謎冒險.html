@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>捷運解謎冒險</title>
+  <style>
+    /* ── Reset & Variables ─────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --red:     #E3002C;
+      --green:   #008659;
+      --blue:    #0070BD;
+      --orange:  #F8A31C;
+      --yellow:  #FEDB00;
+      --purple:  #8B1F82;
+
+      --bg:       #0c0c1e;
+      --bg-panel: #13132b;
+      --bg-card:  #1a1a35;
+      --bg-input: #0c0c1e;
+
+      --text:     #e8e8f8;
+      --dim:      #7878a0;
+      --border:   #28284a;
+
+      --radius: 8px;
+      --font: 'Microsoft JhengHei', 'Noto Sans TC', 'PingFang TC', system-ui, sans-serif;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Screens ───────────────────────────────────────────── */
+    .screen { display: none; width: 100vw; height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* ── Buttons ───────────────────────────────────────────── */
+    .btn {
+      font-family: var(--font);
+      font-size: 0.95rem;
+      padding: 0.65rem 1.6rem;
+      border-radius: var(--radius);
+      border: 1.5px solid;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+      background: transparent;
+      color: var(--text);
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-blue   { border-color: var(--blue);   background: rgba(0,112,189,0.18); }
+    .btn-blue:hover   { background: var(--blue);   box-shadow: 0 0 18px rgba(0,112,189,0.5); }
+    .btn-green  { border-color: var(--green);  background: rgba(0,134,89,0.18); }
+    .btn-green:hover  { background: var(--green);  box-shadow: 0 0 18px rgba(0,134,89,0.5); }
+    .btn-orange { border-color: var(--orange); background: rgba(248,163,28,0.18); }
+    .btn-orange:hover { background: var(--orange); color: #000; }
+    .btn-red    { border-color: var(--red);    background: rgba(227,0,44,0.18); }
+    .btn-red:hover    { background: var(--red); }
+    .btn-ghost  { border-color: var(--border); color: var(--dim); }
+    .btn-ghost:hover  { border-color: #555; color: var(--text); }
+
+    /* ════════════════════════════════════════════════════════
+       TITLE SCREEN
+    ═══════════════════════════════════════════════════════════ */
+    #title-screen {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 50% 35%, #181840 0%, var(--bg) 65%);
+      position: relative;
+      overflow: hidden;
+      gap: 0;
+    }
+
+    .title-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .title-bg-line {
+      position: absolute;
+      height: 3px;
+      width: 130%;
+      left: -15%;
+      border-radius: 2px;
+      opacity: 0;
+      animation: lineScroll 6s ease-in-out infinite;
+    }
+    @keyframes lineScroll {
+      0%   { opacity: 0; transform: translateX(-3%); }
+      20%  { opacity: 0.25; }
+      80%  { opacity: 0.25; }
+      100% { opacity: 0; transform: translateX(3%); }
+    }
+
+    .title-mrt-icon {
+      font-size: 4.5rem;
+      margin-bottom: 1rem;
+      z-index: 1;
+      animation: iconPulse 2.5s ease-in-out infinite;
+    }
+    @keyframes iconPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
+      50% { transform: scale(1.08); filter: drop-shadow(0 0 20px rgba(0,112,189,0.6)); }
+    }
+
+    .title-zh {
+      font-size: clamp(2.2rem, 6vw, 3.8rem);
+      font-weight: 900;
+      letter-spacing: 0.15em;
+      z-index: 1;
+      background: linear-gradient(135deg, #E3002C 0%, #F8A31C 25%, #FEDB00 50%, #008659 75%, #0070BD 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.4rem;
+    }
+
+    .title-en {
+      font-size: 0.95rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--dim);
+      z-index: 1;
+      margin-bottom: 3rem;
+    }
+
+    .title-actions { display: flex; gap: 1rem; z-index: 1; }
+
+    /* ════════════════════════════════════════════════════════
+       STORY INTRO SCREEN
+    ═══════════════════════════════════════════════════════════ */
+    #intro-screen {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: var(--bg);
+    }
+
+    .intro-card {
+      max-width: 680px;
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2.5rem;
+    }
+
+    .intro-card h2 {
+      font-size: 1.2rem;
+      color: var(--orange);
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.05em;
+    }
+
+    .intro-card p {
+      line-height: 2;
+      color: #ccd0d8;
+      margin-bottom: 0.9rem;
+      font-size: 0.97rem;
+    }
+
+    .intro-card .tip {
+      margin-top: 1.5rem;
+      padding: 0.8rem 1.2rem;
+      background: rgba(0,112,189,0.12);
+      border: 1px solid rgba(0,112,189,0.3);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      color: #90c0e8;
+      line-height: 1.7;
+    }
+
+    .intro-card .foot {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* ════════════════════════════════════════════════════════
+       GAME SCREEN
+    ═══════════════════════════════════════════════════════════ */
+    #game-screen { flex-direction: row; }
+
+    /* ── Left Panel ── */
+    .left-panel {
+      width: 360px;
+      min-width: 300px;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 1rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--dim);
+    }
+
+    /* Map SVG */
+    .map-area {
+      padding: 1rem 1.2rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .map-svg { width: 100%; }
+
+    /* Station List */
+    .station-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.6rem 0.8rem;
+    }
+
+    .station-item {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.75rem 0.9rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: all 0.2s;
+      margin-bottom: 0.3rem;
+    }
+    .station-item:hover:not(.disabled) {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--border);
+    }
+    .station-item.current {
+      background: rgba(0,112,189,0.14);
+      border-color: rgba(0,112,189,0.45);
+    }
+    .station-item.disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .station-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2.5px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .station-dot.solved::after {
+      content: '✓';
+      position: absolute;
+      bottom: -4px;
+      right: -4px;
+      background: var(--green);
+      color: #fff;
+      font-size: 0.55rem;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .station-info { flex: 1; min-width: 0; }
+    .station-name { font-weight: 700; font-size: 0.92rem; }
+    .station-sub  { font-size: 0.72rem; color: var(--dim); }
+
+    .station-badge {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    /* Inventory */
+    .inv-panel {
+      padding: 0.9rem 1.4rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .inv-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--dim);
+      margin-bottom: 0.6rem;
+    }
+    .inv-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      min-height: 28px;
+    }
+    .inv-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.25rem 0.7rem;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .inv-empty { font-size: 0.8rem; color: var(--dim); font-style: italic; }
+
+    /* ── Right Panel (Story) ── */
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .story-topbar {
+      padding: 0.9rem 1.8rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .location-tag {
+      padding: 0.3rem 1rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      background: rgba(0,112,189,0.25);
+      border: 1px solid rgba(0,112,189,0.4);
+      white-space: nowrap;
+    }
+
+    .progress-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+    .progress-bar {
+      flex: 1;
+      height: 5px;
+      background: var(--bg-card);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+    .progress-text { font-size: 0.8rem; color: var(--dim); white-space: nowrap; }
+
+    .story-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.8rem 2rem;
+    }
+
+    .log { display: flex; flex-direction: column; gap: 0.9rem; }
+
+    .log-entry {
+      padding: 1rem 1.3rem;
+      border-radius: var(--radius);
+      line-height: 1.85;
+      font-size: 0.93rem;
+      animation: fadeUp 0.3s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .log-entry .entry-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: 0.45rem;
+    }
+
+    .log-narrator { background: var(--bg-card); border-left: 3px solid var(--blue); color: #ccd0d8; }
+    .log-narrator .entry-label { color: var(--blue); }
+    .log-npc { background: rgba(248,163,28,0.1); border-left: 3px solid var(--orange); }
+    .log-npc .entry-label { color: var(--orange); }
+    .log-system { background: rgba(0,134,89,0.1); border-left: 3px solid var(--green); font-family: monospace; }
+    .log-system .entry-label { color: var(--green); }
+    .log-success { background: rgba(0,134,89,0.14); border: 1px solid rgba(0,134,89,0.35); border-radius: var(--radius); }
+    .log-success .entry-label { color: var(--green); }
+
+    .story-footer {
+      padding: 1.2rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-panel);
+    }
+    .action-row { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+
+    /* ════════════════════════════════════════════════════════
+       PUZZLE MODAL
+    ═══════════════════════════════════════════════════════════ */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.82);
+      backdrop-filter: blur(5px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .overlay.open { display: flex; }
+
+    .puzzle-modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 2.2rem 2.5rem;
+      max-width: 540px;
+      width: 92%;
+      animation: modalPop 0.25s ease both;
+    }
+    @keyframes modalPop {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    .puzzle-modal h2 { font-size: 1.2rem; color: var(--orange); margin-bottom: 0.35rem; }
+    .puzzle-modal .puzzle-sub { font-size: 0.85rem; color: var(--dim); margin-bottom: 1.3rem; line-height: 1.6; }
+
+    .puzzle-clue-box {
+      background: var(--bg);
+      border-radius: var(--radius);
+      padding: 1.3rem 1.5rem;
+      margin-bottom: 1.4rem;
+      line-height: 2;
+      font-size: 0.93rem;
+      white-space: pre-line;
+    }
+    .puzzle-clue-box .hi { color: var(--yellow); font-weight: 700; }
+
+    .input-row { display: flex; gap: 0.7rem; align-items: stretch; }
+    .puzzle-input {
+      flex: 1;
+      background: var(--bg-input);
+      border: 2px solid var(--border);
+      color: var(--text);
+      padding: 0.65rem 1rem;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-family: monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .puzzle-input:focus { border-color: var(--blue); }
+    .puzzle-input.err {
+      border-color: var(--red);
+      animation: shake 0.28s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      30% { transform: translateX(-6px); }
+      70% { transform: translateX(6px); }
+    }
+
+    .puzzle-feedback {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      line-height: 1.6;
+      display: none;
+    }
+    .puzzle-feedback.err-msg  { display: block; background: rgba(227,0,44,0.12); border: 1px solid rgba(227,0,44,0.4); color: #ff8899; }
+    .puzzle-feedback.ok-msg   { display: block; background: rgba(0,134,89,0.12); border: 1px solid rgba(0,134,89,0.4); color: #66ddaa; }
+
+    .puzzle-modal-foot {
+      margin-top: 1.4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .attempt-count { font-size: 0.8rem; color: var(--dim); }
+
+    /* ════════════════════════════════════════════════════════
+       WIN SCREEN
+    ═══════════════════════════════════════════════════════════ */
+    #win-screen {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 50% 40%, #0a200a 0%, var(--bg) 65%);
+    }
+
+    .win-box {
+      text-align: center;
+      max-width: 600px;
+      padding: 2rem;
+    }
+    .win-icon {
+      font-size: 5rem;
+      margin-bottom: 1rem;
+      display: block;
+      animation: winSpin 0.6s ease infinite alternate;
+    }
+    @keyframes winSpin {
+      from { transform: scale(1) rotate(-4deg); }
+      to   { transform: scale(1.1) rotate(4deg); }
+    }
+    .win-title {
+      font-size: 2.4rem;
+      font-weight: 900;
+      color: var(--green);
+      margin-bottom: 1.2rem;
+    }
+    .win-body {
+      font-size: 1rem;
+      line-height: 1.9;
+      color: #bbc8d0;
+      margin-bottom: 2rem;
+    }
+    .win-stats {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+    .win-stat {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.8rem 1.5rem;
+      text-align: center;
+    }
+    .win-stat-val { font-size: 1.8rem; font-weight: 900; color: var(--yellow); }
+    .win-stat-lbl { font-size: 0.78rem; color: var(--dim); margin-top: 0.2rem; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Mobile */
+    @media (max-width: 700px) {
+      #game-screen { flex-direction: column; }
+      .left-panel { width: 100%; height: auto; max-height: 42vh; min-width: unset; }
+      .right-panel { flex: 1; min-height: 0; }
+      .map-area { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     TITLE SCREEN
+══════════════════════════════════════════════════════════ -->
+<div id="title-screen" class="screen active">
+  <div class="title-bg" id="title-bg"></div>
+  <span class="title-mrt-icon">🚇</span>
+  <h1 class="title-zh">捷運解謎冒險</h1>
+  <p class="title-en">MRT Mystery Adventure · 2026</p>
+  <div class="title-actions">
+    <button class="btn btn-blue" onclick="gotoIntro()">開始冒險</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     INTRO SCREEN
+══════════════════════════════════════════════════════════ -->
+<div id="intro-screen" class="screen">
+  <div class="intro-card">
+    <h2>📋 任務簡報</h2>
+    <p>
+      2026年，台北捷運迎來開通三十週年。台北市立捷運博物館正在展出稀世珍寶——
+      <strong style="color:var(--orange)">「捷運創辦人手稿」</strong>，記載著捷運系統最初的設計藍圖，無可取代。
+    </p>
+    <p>
+      就在昨晚，手稿失竊了！監視器拍下嫌疑人匆忙逃離台北車站的身影。
+      更奇怪的是，他故意在各站留下謎題——彷彿在向偵探們挑釁。
+    </p>
+    <p>
+      你是一位私家偵探，受警方委託展開調查。
+      你必須沿著台北捷運路線，解開嫌疑人留下的 <strong style="color:var(--yellow)">四道謎題</strong>，追上嫌疑人，奪回珍貴手稿！
+    </p>
+    <div class="tip">
+      ⚡ 玩法提示：點選左側地圖上的車站前往各站，找到謎題並輸入正確答案即可解鎖線索。
+      解開全部四道謎題，任務完成！
+    </div>
+    <div class="foot">
+      <button class="btn btn-blue" onclick="gotoGame()">出發！🚇</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     GAME SCREEN
+══════════════════════════════════════════════════════════ -->
+<div id="game-screen" class="screen">
+
+  <!-- Left Panel -->
+  <div class="left-panel">
+    <div class="panel-header">🗺 台北捷運路線圖</div>
+
+    <!-- Schematic Map -->
+    <div class="map-area">
+      <svg class="map-svg" viewBox="0 0 310 170" xmlns="http://www.w3.org/2000/svg">
+        <!-- Blue line (horizontal) -->
+        <line x1="18" y1="70" x2="292" y2="70" stroke="#0070BD" stroke-width="5" stroke-linecap="round"/>
+        <!-- Red line (vertical, partial south) -->
+        <line x1="160" y1="70" x2="160" y2="155" stroke="#E3002C" stroke-width="5" stroke-linecap="round"/>
+
+        <!-- 龍山寺 (Blue) -->
+        <circle id="dot-longshan"      cx="32"  cy="70" r="9" fill="#13132b" stroke="#0070BD" stroke-width="2.5"/>
+        <text x="32"  y="57" text-anchor="middle" fill="#aab" font-size="10" font-family="Microsoft JhengHei,sans-serif">龍山寺</text>
+
+        <!-- 西門 (Blue) -->
+        <circle id="dot-ximen"         cx="95"  cy="70" r="9" fill="#13132b" stroke="#0070BD" stroke-width="2.5"/>
+        <text x="95"  y="57" text-anchor="middle" fill="#aab" font-size="10" font-family="Microsoft JhengHei,sans-serif">西門</text>
+
+        <!-- 台北車站 (Interchange) -->
+        <rect x="149" y="59" width="22" height="22" rx="5" fill="#13132b" stroke="#E3002C" stroke-width="2.5"/>
+        <circle                         cx="160" cy="70" r="7" fill="#13132b" stroke="#0070BD" stroke-width="2"/>
+        <text x="160" y="48" text-anchor="middle" fill="#ccd" font-size="10" font-family="Microsoft JhengHei,sans-serif">台北</text>
+        <text x="160" y="58" text-anchor="middle" fill="#ccd" font-size="10" font-family="Microsoft JhengHei,sans-serif">車站</text>
+
+        <!-- 忠孝復興 (Blue) -->
+        <circle id="dot-zhongxiao"     cx="230" cy="70" r="9" fill="#13132b" stroke="#0070BD" stroke-width="2.5"/>
+        <text x="230" y="57" text-anchor="middle" fill="#aab" font-size="9" font-family="Microsoft JhengHei,sans-serif">忠孝復興</text>
+
+        <!-- 大安森林公園 (Red) -->
+        <circle id="dot-daan"          cx="160" cy="148" r="9" fill="#13132b" stroke="#E3002C" stroke-width="2.5"/>
+        <text x="185" y="151" text-anchor="start"  fill="#aab" font-size="9" font-family="Microsoft JhengHei,sans-serif">大安森林公園</text>
+
+        <!-- Line labels -->
+        <text x="290" y="66" text-anchor="end" fill="#0070BD" font-size="9" opacity="0.5" font-family="Microsoft JhengHei,sans-serif">板南線</text>
+        <text x="174" y="150" text-anchor="start" fill="#E3002C" font-size="9" opacity="0" font-family="Microsoft JhengHei,sans-serif">信義線</text>
+      </svg>
+    </div>
+
+    <!-- Station List -->
+    <div class="station-list" id="station-list"></div>
+
+    <!-- Inventory -->
+    <div class="inv-panel">
+      <div class="inv-title">🎒 線索庫存</div>
+      <div class="inv-items" id="inv-items">
+        <span class="inv-empty">尚無線索</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="right-panel">
+    <div class="story-topbar">
+      <div class="location-tag" id="loc-tag">台北車站</div>
+      <div class="progress-wrap">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <span class="progress-text" id="progress-text">0 / 4 謎題</span>
+      </div>
+    </div>
+    <div class="story-body">
+      <div class="log" id="story-log"></div>
+    </div>
+    <div class="story-footer">
+      <div class="action-row" id="action-row"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PUZZLE MODAL
+══════════════════════════════════════════════════════════ -->
+<div class="overlay" id="puzzle-overlay">
+  <div class="puzzle-modal">
+    <h2 id="pm-title"></h2>
+    <p class="puzzle-sub" id="pm-sub"></p>
+    <div class="puzzle-clue-box" id="pm-clue"></div>
+    <div class="input-row">
+      <input class="puzzle-input" id="pm-input" type="text" maxlength="10" placeholder="輸入答案…" autocomplete="off"/>
+      <button class="btn btn-blue" onclick="submitAnswer()">確認</button>
+    </div>
+    <div class="puzzle-feedback" id="pm-feedback"></div>
+    <div class="puzzle-modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">暫時離開</button>
+      <span class="attempt-count" id="pm-attempts"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     WIN SCREEN
+══════════════════════════════════════════════════════════ -->
+<div id="win-screen" class="screen">
+  <div class="win-box">
+    <span class="win-icon">🏆</span>
+    <div class="win-title">任務完成！</div>
+    <p class="win-body">
+      你成功追上了嫌疑人，奪回了珍貴的<strong style="color:var(--orange)">「捷運創辦人手稿」</strong>！<br>
+      台北捷運博物館的無價之寶終於安全歸還。<br><br>
+      你解開了全部四道謎題，台北最強偵探，非你莫屬！
+    </p>
+    <div class="win-stats">
+      <div class="win-stat">
+        <div class="win-stat-val" id="stat-puzzles">4</div>
+        <div class="win-stat-lbl">謎題解開</div>
+      </div>
+      <div class="win-stat">
+        <div class="win-stat-val" id="stat-attempts">—</div>
+        <div class="win-stat-lbl">總嘗試次數</div>
+      </div>
+      <div class="win-stat">
+        <div class="win-stat-val" id="stat-items">4</div>
+        <div class="win-stat-lbl">線索收集</div>
+      </div>
+    </div>
+    <button class="btn btn-green" onclick="restartGame()">再玩一次</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  GAME DATA
+// ════════════════════════════════════════════════════════════
+
+const STATIONS = [
+  {
+    id: 'taipei',
+    nameZh: '台北車站',
+    nameEn: 'Taipei Main Station',
+    icon: '🏛',
+    lineColor: '#E3002C',
+    puzzle: null,
+    item: null,
+    narration: `你站在台北車站寬敞的大廳中，旅客川流不息。
+警方剛傳來消息：「捷運創辦人手稿」昨晚遭竊，監視器顯示嫌疑人搭乘板南線往西逃逸，並在沿線各站刻意留下謎題。
+你翻開偵探日記，決定展開追蹤。`
+  },
+  {
+    id: 'ximen',
+    nameZh: '西門站',
+    nameEn: 'Ximending Station',
+    icon: '🎭',
+    lineColor: '#0070BD',
+    puzzle: {
+      title: '🔐 密碼行李箱',
+      sub: '在西門町一個舊書攤旁，你發現了一個可疑的行李箱，箱上貼著數字密碼鎖和一張紙條…',
+      clue: `紙條上寫著：
+
+   「我的繼承者，永遠是前兩位的總和。」
+
+請找出數列中「？」的值，輸入答案解開密碼鎖：
+
+   <span class="hi">1, 1, 2, 3, 5, 8, 13, 21, ？</span>`,
+      answer: '34',
+      hint: '每個數字＝前兩個數字相加（斐波那契數列）',
+      successText: `密碼正確！行李箱彈開，裡面有一份破損地圖和一張便條：
+「龍山寺的廟祝在等你——他有嫌疑人留下的算術謎題。」`
+    },
+    item: { icon: '🗺', name: '地圖碎片' },
+    narration: `西門町的街道熱鬧喧嘩，街頭藝人的音樂飄蕩空中。
+在一個舊書攤的角落，你看見一個鎖著的行李箱，上面貼著一張神秘紙條。`
+  },
+  {
+    id: 'longshan',
+    nameZh: '龍山寺站',
+    nameEn: 'Longshan Temple',
+    icon: '🏯',
+    lineColor: '#0070BD',
+    puzzle: {
+      title: '🧮 廟宇算術謎',
+      sub: '龍山寺香火鼎盛，一位老廟祝攔住了你，說嫌疑人留下了一道謎題，必須答對才能通過…',
+      clue: `廟祝緩緩念道：
+
+「寺裡來了三位香客——甲、乙、丙。
+
+   甲比乙大 <span class="hi">3</span> 歲
+   乙比丙大 <span class="hi">3</span> 歲
+   三人年齡之和為 <span class="hi">30</span> 歲
+
+請問甲幾歲？輸入甲的年齡：」`,
+      answer: '13',
+      hint: '設甲=x，則乙=x-3，丙=x-6；x+(x-3)+(x-6)=30',
+      successText: `正確！廟祝點頭微笑，從香爐後取出一枚古銅牌：
+「忠孝復興站・地下二樓・置物櫃 107」`
+    },
+    item: { icon: '🥉', name: '古銅牌' },
+    narration: `龍山寺古樸莊嚴，香煙裊裊。
+一位老廟祝看見你走近，眼神銳利，說嫌疑人曾在此停留，留下了一道算術謎題作為通行證。`
+  },
+  {
+    id: 'zhongxiao',
+    nameZh: '忠孝復興站',
+    nameEn: 'Zhongxiao Fuxing',
+    icon: '🏢',
+    lineColor: '#0070BD',
+    puzzle: {
+      title: '🔢 置物櫃密碼',
+      sub: '根據古銅牌的指示，你在地下二樓找到置物櫃 107，上面有個四位數密碼鎖，旁邊貼著計算卡…',
+      clue: `計算卡寫著：
+
+密碼由以下四個數字組成，依序排列：
+
+   第一位：<span class="hi">2 的三次方</span>（2³）
+   第二位：<span class="hi">9 的平方根</span>（√9）
+   第三位：<span class="hi">3 × 4 − 8</span>
+   第四位：<span class="hi">100 ÷ 20</span>
+
+請輸入四位數密碼：`,
+      answer: '8345',
+      hint: '2³=8, √9=3, 3×4-8=4, 100÷20=5 → 8345',
+      successText: `咔嗒！置物櫃打開了，裡面有一個信封：
+「手稿就藏在大安森林公園的百年老榕樹下。
+  最後的守門人正在等你——如果你能通過他的考驗。」`
+    },
+    item: { icon: '✉️', name: '神秘信封' },
+    narration: `忠孝復興站人潮洶湧，是個重要的轉乘樞紐。
+按照古銅牌上的指示，你順著走廊找到了地下二樓的置物區，
+置物櫃 107 靜靜地矗立在角落，等待著你。`
+  },
+  {
+    id: 'daan',
+    nameZh: '大安森林公園站',
+    nameEn: 'Daan Forest Park',
+    icon: '🌳',
+    lineColor: '#E3002C',
+    puzzle: {
+      title: '⚔️ 最終對決',
+      sub: '你找到了百年老榕樹。嫌疑人就站在樹下，手稿緊握手中，眼神充滿挑釁…',
+      clue: `嫌疑人冷笑：「最後一道謎題。答對了，我就把手稿交給你。」
+
+「一個房間有 <span class="hi">4</span> 個角落，
+ 每個角落有 <span class="hi">4</span> 隻貓，
+ 每隻貓有 <span class="hi">4</span> 條腿，
+ 每條腿有 <span class="hi">4</span> 個爪子。
+
+ 房間裡總共有幾個爪子？」
+
+輸入爪子總數：`,
+      answer: '256',
+      hint: '4個角落 × 4隻貓 × 4條腿 × 4個爪子 = 4⁴ = 256',
+      successText: `嫌疑人瞪大雙眼，手稿緩緩落地。
+警方從四面八方衝出，逮住了嫌疑人。
+「捷運創辦人手稿」安全找回！`
+    },
+    item: { icon: '📜', name: '捷運創辦人手稿' },
+    narration: `大安森林公園在暮色中格外幽靜，樹影搖曳。
+你走向那棵傳說中的百年老榕樹，心跳加速——
+嫌疑人的身影就在前方，手稿在他手中，等待著最後的對決。`
+  }
+];
+
+// ════════════════════════════════════════════════════════════
+//  GAME STATE
+// ════════════════════════════════════════════════════════════
+
+let G = freshState();
+function freshState() {
+  return {
+    current:       'taipei',
+    visited:       new Set(['taipei']),
+    solved:        new Set(),
+    inventory:     [],
+    attempts:      {},   // stationId → count
+    startTime:     Date.now(),
+    activePuzzle:  null,
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+//  SCREEN NAVIGATION
+// ════════════════════════════════════════════════════════════
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function gotoIntro() { show('intro-screen'); }
+function gotoGame()  { show('game-screen'); initGame(); }
+function restartGame() { G = freshState(); show('game-screen'); initGame(); }
+
+// ════════════════════════════════════════════════════════════
+//  GAME INIT
+// ════════════════════════════════════════════════════════════
+
+function initGame() {
+  renderStationList();
+  updateProgress();
+  updateInventory();
+  travelTo('taipei');
+}
+
+// ════════════════════════════════════════════════════════════
+//  STATION LIST
+// ════════════════════════════════════════════════════════════
+
+function renderStationList() {
+  const el = document.getElementById('station-list');
+  el.innerHTML = '';
+
+  STATIONS.forEach(st => {
+    const isCurrent = st.id === G.current;
+    const isSolved  = G.solved.has(st.id);
+    const isVisited = G.visited.has(st.id);
+
+    const div = document.createElement('div');
+    div.className = 'station-item' + (isCurrent ? ' current' : '');
+    div.onclick = () => travelTo(st.id);
+
+    const dotExtra = isSolved ? ' solved' : '';
+    let badge, badgeColor;
+    if (isSolved) {
+      badge = '✅ 完成'; badgeColor = 'rgba(0,134,89,0.5)';
+    } else if (isCurrent) {
+      badge = '📍 目前所在'; badgeColor = 'rgba(0,112,189,0.4)';
+    } else if (isVisited) {
+      badge = '👀 訪問過'; badgeColor = 'rgba(248,163,28,0.35)';
+    } else {
+      badge = '⬤ 未訪'; badgeColor = 'transparent';
+    }
+
+    div.innerHTML = `
+      <div class="station-dot${dotExtra}" style="border-color:${st.lineColor};color:${st.lineColor}">
+        ${st.icon}
+      </div>
+      <div class="station-info">
+        <div class="station-name">${st.nameZh}</div>
+        <div class="station-sub">${st.nameEn}</div>
+      </div>
+      <span class="station-badge" style="background:${badgeColor}">${badge}</span>
+    `;
+    el.appendChild(div);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  TRAVEL
+// ════════════════════════════════════════════════════════════
+
+function travelTo(id) {
+  const st = STATIONS.find(s => s.id === id);
+  if (!st) return;
+
+  G.current = id;
+  G.visited.add(id);
+
+  document.getElementById('loc-tag').textContent = st.nameZh;
+  renderStationList();
+  renderStationScene(st);
+}
+
+// ════════════════════════════════════════════════════════════
+//  SCENE RENDERING
+// ════════════════════════════════════════════════════════════
+
+function renderStationScene(st) {
+  clearLog();
+  clearActions();
+
+  const isSolved = G.solved.has(st.id);
+
+  addLog('narrator', `${st.icon} ${st.nameZh}`, st.narration);
+
+  if (st.id === 'taipei') {
+    addAction('📻 聯絡警方', 'btn-orange', () => {
+      addLog('npc', '📻 警方通訊',
+        '「偵探，我們鎖定嫌疑人曾在板南線西側活動。建議先前往西門站調查，再沿線追蹤。」');
+    });
+  }
+
+  if (st.puzzle) {
+    if (!isSolved) {
+      addAction('🔐 挑戰謎題', 'btn-blue', () => openModal(st));
+    } else {
+      addLog('system', '✅ 謎題已解開', `你已取得線索：${st.item.icon} ${st.item.name}`);
+    }
+  }
+
+  // Travel buttons (all other stations)
+  STATIONS.forEach(other => {
+    if (other.id !== st.id) {
+      addAction(`🚇 前往 ${other.nameZh}`, 'btn-ghost', () => travelTo(other.id));
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  LOG HELPERS
+// ════════════════════════════════════════════════════════════
+
+function addLog(type, label, text) {
+  const log = document.getElementById('story-log');
+  const d = document.createElement('div');
+  d.className = `log-entry log-${type}`;
+  d.innerHTML = `<div class="entry-label">${label}</div><div>${text.replace(/\n/g,'<br>')}</div>`;
+  log.appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function clearLog() { document.getElementById('story-log').innerHTML = ''; }
+
+function addAction(label, cls, fn) {
+  const row = document.getElementById('action-row');
+  const b = document.createElement('button');
+  b.className = `btn ${cls}`;
+  b.textContent = label;
+  b.onclick = fn;
+  row.appendChild(b);
+}
+
+function clearActions() { document.getElementById('action-row').innerHTML = ''; }
+
+// ════════════════════════════════════════════════════════════
+//  PUZZLE MODAL
+// ════════════════════════════════════════════════════════════
+
+function openModal(st) {
+  G.activePuzzle = st;
+  const p = st.puzzle;
+
+  document.getElementById('pm-title').textContent    = p.title;
+  document.getElementById('pm-sub').textContent      = p.sub;
+  document.getElementById('pm-clue').innerHTML       = p.clue;
+
+  const inp = document.getElementById('pm-input');
+  inp.value = '';
+  inp.disabled = false;
+  inp.className = 'puzzle-input';
+  inp.onkeydown = e => { if (e.key === 'Enter') submitAnswer(); };
+
+  const fb = document.getElementById('pm-feedback');
+  fb.className = 'puzzle-feedback';
+  fb.style.display = 'none';
+
+  const n = G.attempts[st.id] || 0;
+  document.getElementById('pm-attempts').textContent = n > 0 ? `已嘗試 ${n} 次` : '';
+
+  document.getElementById('puzzle-overlay').classList.add('open');
+  setTimeout(() => inp.focus(), 80);
+}
+
+function closeModal() {
+  document.getElementById('puzzle-overlay').classList.remove('open');
+  G.activePuzzle = null;
+}
+
+function submitAnswer() {
+  const st = G.activePuzzle;
+  if (!st) return;
+
+  const inp = document.getElementById('pm-input');
+  const fb  = document.getElementById('pm-feedback');
+  const ans = inp.value.trim();
+
+  G.attempts[st.id] = (G.attempts[st.id] || 0) + 1;
+  document.getElementById('pm-attempts').textContent = `已嘗試 ${G.attempts[st.id]} 次`;
+
+  if (ans === st.puzzle.answer) {
+    // ── Correct ──
+    fb.className = 'puzzle-feedback ok-msg';
+    fb.textContent = '🎉 ' + st.puzzle.successText;
+    fb.style.display = 'block';
+    inp.disabled = true;
+
+    G.solved.add(st.id);
+    if (st.item) G.inventory.push(st.item);
+
+    updateInventory();
+    updateProgress();
+    renderStationList();
+
+    setTimeout(() => {
+      closeModal();
+      const stData = STATIONS.find(s => s.id === st.id);
+      renderStationScene(stData);
+
+      if (G.solved.size >= 4) {
+        setTimeout(() => showWin(), 800);
+      }
+    }, 2800);
+
+  } else {
+    // ── Wrong ──
+    fb.className = 'puzzle-feedback err-msg';
+    fb.style.display = 'block';
+    const n = G.attempts[st.id];
+    fb.textContent = n >= 3
+      ? `❌ 答案不對。提示：${st.puzzle.hint}`
+      : `❌ 答案不正確，再試試看！（第 ${n} 次）`;
+
+    inp.classList.add('err');
+    setTimeout(() => inp.classList.remove('err'), 300);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  PROGRESS & INVENTORY
+// ════════════════════════════════════════════════════════════
+
+function updateProgress() {
+  const total  = STATIONS.filter(s => s.puzzle).length; // 4
+  const solved = G.solved.size;
+  const pct    = (solved / total) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `${solved} / ${total} 謎題`;
+}
+
+function updateInventory() {
+  const el = document.getElementById('inv-items');
+  if (G.inventory.length === 0) {
+    el.innerHTML = '<span class="inv-empty">尚無線索</span>';
+  } else {
+    el.innerHTML = G.inventory
+      .map(it => `<div class="inv-chip">${it.icon} ${it.name}</div>`)
+      .join('');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  WIN SCREEN
+// ════════════════════════════════════════════════════════════
+
+function showWin() {
+  const totalAttempts = Object.values(G.attempts).reduce((a, b) => a + b, 0);
+  document.getElementById('stat-attempts').textContent = totalAttempts;
+  show('win-screen');
+}
+
+// ════════════════════════════════════════════════════════════
+//  TITLE BACKGROUND ANIMATION
+// ════════════════════════════════════════════════════════════
+
+(function initTitleBg() {
+  const bg     = document.getElementById('title-bg');
+  const colors = ['#E3002C','#008659','#0070BD','#F8A31C','#FEDB00','#8B1F82'];
+  colors.forEach((c, i) => {
+    const div = document.createElement('div');
+    div.className = 'title-bg-line';
+    div.style.cssText = `
+      background: ${c};
+      top: ${8 + i * 13}%;
+      animation-delay: ${i * -1.1}s;
+      animation-duration: ${4 + i * 0.6}s;
+    `;
+    bg.appendChild(div);
+  });
+})();
+</script>
+</body>
+</html>
