@@ -35,6 +35,15 @@ SHAFT_L = 158.0
 NUT_AF, NUT_H = 41.0, 20.0
 PLATE_D, PLATE_T, PLATE_BORE = 80.0, 5.0, 25.5
 
+# fillets / rounds (durability + looks)
+ARM_R_TOP, ARM_R_BOT = 5.0, 2.0   # arm outline: top edge R5, bottom edge R2 (meets Ø56 hub flush)
+HUB_R = 1.5                       # hub bottom edge
+FLANGE_R = 2.5                    # flange outer edges (top + bottom)
+SHAFT_FILLET = 2.0                # concave fillet shaft root -> flange (stress relief)
+SPIGOT_FILLET = 1.5               # concave fillet flange -> Ø29 spigot (sits in arm hole chamfer)
+NUT_CORNER_R = 3.0                # rounded hex vertical edges
+PLATE_R_OUT, PLATE_R_IN = 1.5, 0.8
+
 
 # ---------------------------------------------------------------- helpers
 def to_manifold(tm):
@@ -112,12 +121,56 @@ def int_thread_cutter(d, P, L, z0=0.0, chamfer=1.5):
     return t + top + bot
 
 
+
+# ---------------------------------------------------------------- round-edge helpers
+def arc(cx, cy, r, a0, a1, n=12):
+    t = np.radians(np.linspace(a0, a1, n))
+    return [(cx + r * math.cos(a), cy + r * math.sin(a)) for a in t]
+
+def revolve(pts, n=SEG):
+    """Revolve a (radius, z) polygon about Z."""
+    pts = np.asarray(pts, float)
+    x, y = pts[:, 0], pts[:, 1]
+    if 0.5 * np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y) < 0:
+        pts = pts[::-1]
+    return m3.Manifold.revolve(m3.CrossSection([pts.tolist()]), n)
+
+def rounded_disc(r_out, h, r_in=0.0, ro_bot=0.0, ro_top=0.0, ri_bot=0.0, ri_top=0.0, z0=0.0):
+    """Annulus/disc with rounded edges: profile in (r, z)."""
+    P = []
+    P += arc(r_out - ro_bot, ro_bot, ro_bot, -90, 0) if ro_bot else [(r_out, 0)]
+    P += arc(r_out - ro_top, h - ro_top, ro_top, 0, 90) if ro_top else [(r_out, h)]
+    if r_in > 0:
+        P += arc(r_in + ri_top, h - ri_top, ri_top, 90, 180) if ri_top else [(r_in, h)]
+        P += arc(r_in + ri_bot, ri_bot, ri_bot, 180, 270) if ri_bot else [(r_in, 0)]
+    else:
+        P += [(0, h), (0, 0)]
+    return revolve(P).translate((0, 0, z0))
+
+def fillet_ring(r0, z0, R, up=True):
+    """Concave fillet in the corner between a cylinder of radius r0 and a face at z0."""
+    sgn = 1 if up else -1
+    P = [(r0, z0), (r0 + R, z0)]
+    P += [(r0 + R + R * math.cos(a), z0 + sgn * (R + R * math.sin(a)))
+          for a in np.radians(np.linspace(-90, -180, 14))]
+    return revolve(P)
+
+def rounded_slab_hull(centers_radii, h, r_top, r_bot, z0=0.0, n=SEG, steps=10):
+    """Convex hull of circles (x, y, R) extruded to height h, top/bottom edges rounded."""
+    pts = []
+    def ring(z, inset):
+        for (cx, cy, R) in centers_radii:
+            t = np.linspace(0, 2 * math.pi, n, endpoint=False)
+            pts.extend(np.c_[cx + (R - inset) * np.cos(t), cy + (R - inset) * np.sin(t), np.full(n, z)].tolist())
+    for a in np.radians(np.linspace(0, 90, steps)):
+        ring(z0 + r_bot - r_bot * math.sin(a), r_bot - r_bot * math.cos(a))
+        ring(z0 + h - r_top + r_top * math.sin(a), r_top - r_top * math.cos(a))
+    return m3.Manifold.hull_points(pts)
+
 # ---------------------------------------------------------------- 1. arm
 def arm():
-    a = cyl(2 * R_MOTOR, ARM_T)
-    b = cyl(2 * R_LOAD, ARM_T).translate((ARM_LEN, 0, 0))
-    body = m3.Manifold.batch_hull([a, b])
-    body = body + cyl(HUB_D, HUB_H + 0.01, -HUB_H)
+    body = rounded_slab_hull([(0, 0, R_MOTOR), (ARM_LEN, 0, R_LOAD)], ARM_T, ARM_R_TOP, ARM_R_BOT)
+    body = body + rounded_slab_hull([(0, 0, HUB_D / 2)], HUB_H + 0.5, 0.0, HUB_R, z0=-HUB_H)
     zb, zt = -HUB_H, ARM_T
     H = zt - zb
     # motor interface (same as v1 drawing)
@@ -141,10 +194,13 @@ def arm():
 # ---------------------------------------------------------------- 2. pin
 def pin():
     spigot = ext_thread(SOCKET_D, SOCKET_P, PIN_SPIGOT_L, -PIN_SPIGOT_L, chamfer_top=False)
-    flange = cyl(FLANGE_D, FLANGE_T)
-    flange -= (cyl(FLANGE_D + 2, 1.0, FLANGE_T - 1.0) - cyl(FLANGE_D, 1.0, FLANGE_T - 1.0, FLANGE_D - 2))  # top edge chamfer
+    flange = rounded_disc(FLANGE_D / 2, FLANGE_T, ro_bot=FLANGE_R, ro_top=FLANGE_R)
     shaft = ext_thread(SHAFT_D, SHAFT_P, SHAFT_L + 0.5, FLANGE_T - 0.5, chamfer_bot=False)
-    body = spigot + flange + shaft
+    root_shaft = SHAFT_D / 2 - (0.5 * SHAFT_P + 0.25)
+    root_spigot = SOCKET_D / 2 - (0.5 * SOCKET_P + 0.25)
+    fil = (fillet_ring(root_shaft - 0.05, FLANGE_T, SHAFT_FILLET, up=True)
+           + fillet_ring(root_spigot - 0.05, 0.0, SPIGOT_FILLET, up=False))
+    body = spigot + flange + shaft + fil
     total = PIN_SPIGOT_L + FLANGE_T + SHAFT_L
     body -= cyl(BORE, total + 4, -PIN_SPIGOT_L - 2, n=64)
     return body
@@ -152,20 +208,23 @@ def pin():
 # ---------------------------------------------------------------- 3. nut
 def hex_nut():
     hexr = NUT_AF / 2 / math.cos(math.radians(30))
-    hx = m3.Manifold.cylinder(NUT_H, hexr, hexr, 6).rotate((0, 0, 30))
+    c = NUT_CORNER_R
+    d = hexr - c / math.cos(math.radians(30))          # corner-circle centre distance
+    corners = [(d * math.cos(math.radians(60 * k)), d * math.sin(math.radians(60 * k))) for k in range(6)]
+    hx = m3.Manifold.batch_hull([cyl(2 * c, NUT_H, n=24).translate((x, y, 0)) for x, y in corners])
     # 30° corner chamfer on both faces (standard nut look; chamfer circle = AF)
     cr = 2 * hexr + 0.2
     ch = (cr - NUT_AF) / 2 * math.tan(math.radians(60))
     env = (cyl(NUT_AF, ch, 0, cr) + cyl(cr, NUT_H - 2 * ch, ch)
            + cyl(cr, ch, NUT_H - ch, NUT_AF))
     nut = hx ^ env
-    nut -= int_thread_cutter(SHAFT_D, SHAFT_P, NUT_H, 0.0, chamfer=1.0)
+    nut -= int_thread_cutter(SHAFT_D, SHAFT_P, NUT_H, 0.0, chamfer=1.5)
     return nut
 
 # ---------------------------------------------------------------- 4. plate
 def clamp_plate():
-    p = cyl(PLATE_D, PLATE_T) - cyl(PLATE_BORE, PLATE_T + 2, -1, n=96)
-    return p
+    return rounded_disc(PLATE_D / 2, PLATE_T, PLATE_BORE / 2,
+                        PLATE_R_OUT, PLATE_R_OUT, PLATE_R_IN, PLATE_R_IN)
 
 if __name__ == "__main__":
     parts = {

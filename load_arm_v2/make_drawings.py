@@ -126,7 +126,7 @@ ax.text(0.0, 0.35,
         "・ 相鄰孔中心距 50，孔間殘留壁 ≈ 20 mm。\n"
         "・ 未使用的孔不影響強度計算；可加 M12 螺帽堵住防異物。",
         fontsize=8, va="top", transform=ax.transAxes)
-fig.text(0.03, 0.045, "註：PETG、填充 ≥ 50%、牆 5 圈；平放列印（輪轂朝下需支撐，或翻面輪轂朝上）。螺紋請以 STL 列印檔為準（load_arm_multi_hole.stl）。", fontsize=8)
+fig.text(0.03, 0.035, "註：PETG、填充 ≥ 50%、牆 5 圈；平放列印（輪轂朝下需支撐，或翻面輪轂朝上）。螺紋請以 STL 列印檔為準（load_arm_multi_hole.stl）。\n圓角：桿件外形上緣 R5、下緣 R2（與 Ø56 輪轂平順銜接），輪轂底緣 R1.5。", fontsize=8, linespacing=1.6)
 pdf.savefig(fig); plt.close(fig)
 
 # ======================================================= page 2 : pin / nut / plate / assembly
@@ -148,19 +148,25 @@ note(ax, (12, 100), "外螺紋 Tr24.5×3 右旋\n小徑 Ø21.0，牙深 1.75\n�
 note(ax, (-6, 60), "中心孔 Ø12.5 貫穿\n（M12 全牙螺桿）", (-58, 70))
 note(ax, (-14, -12), "外螺紋 Ø29×P3\n長 24（鎖入承重桿）", (-58, -18))
 # nut views
-ax = view(fig, [0.30, 0.56, 0.22, 0.38], (-35, 35), (-38, 45), "六角螺母 俯視")
+ax = view(fig, [0.30, 0.56, 0.22, 0.38], (-42, 35), (-38, 45), "六角螺母 俯視")
 hexr = NUT_AF / 2 / math.cos(math.radians(30))
-ax.add_patch(Polygon([(hexr * math.cos(math.radians(30 + 60 * k)), hexr * math.sin(math.radians(30 + 60 * k))) for k in range(6)], fill=False, lw=LW))
+cdist = hexr - NUT_CORNER_R / math.cos(math.radians(30))
+hpts = []
+for k in range(6):
+    a0 = 60 * k
+    hpts += [(cdist * math.cos(math.radians(a0)) + NUT_CORNER_R * math.cos(math.radians(t)),
+              cdist * math.sin(math.radians(a0)) + NUT_CORNER_R * math.sin(math.radians(t))) for t in np.linspace(a0 - 30, a0 + 30, 8)]
+ax.add_patch(Polygon(hpts, fill=False, lw=LW))
 ax.add_patch(Circle((0, 0), NUT_AF / 2, fill=False, lw=THIN))
 ax.add_patch(Circle((0, 0), (SHAFT_D + 2 * FIT) / 2, fill=False, lw=THIN, ls=(0, (3, 2))))
 ax.add_patch(Circle((0, 0), (SHAFT_D - 3.5 + 2 * FIT) / 2, fill=False, lw=LW))
 center(ax, (-30, 0), (30, 0)); center(ax, (0, -28), (0, 28))
-dim(ax, (-NUT_AF / 2, 0), (NUT_AF / 2, 0), "對邊 41（41 mm 扳手）", off=27)
+dim(ax, (0, -NUT_AF / 2), (0, NUT_AF / 2), "對邊 41（41 mm 扳手）", off=-33, vertical=True)
 ax = view(fig, [0.30, 0.30, 0.22, 0.28], (-35, 35), (-22, 36), "六角螺母 剖面")
 section(ax, nut, (0, 0, 0), normal=(0, 1, 0))
 center(ax, (0, -4), (0, 24))
 dim(ax, (hexr, 0), (hexr, NUT_H), "20", off=4, vertical=True)
-ax.text(0, -12, "內螺紋 Tr24.5×3 右旋（含列印間隙 0.35/邊）\n兩面 30° 倒角、孔口倒角 1.0", ha="center", fontsize=7.5)
+ax.text(0, -12, "內螺紋 Tr24.5×3 右旋（含列印間隙 0.35/邊）\n兩面 30° 倒角、孔口倒角 1.5、六角邊 R3", ha="center", fontsize=7.5)
 # plate
 ax = view(fig, [0.30, 0.15, 0.22, 0.16], (-48, 48), (-16, 20), "壓板 Ø80×5")
 ax.add_patch(Rectangle((-PLATE_D / 2, 0), (PLATE_D - PLATE_BORE) / 2, PLATE_T, fill=True, fc="0.85", ec="k", lw=LW))
@@ -197,7 +203,8 @@ fig.text(0.03, 0.035,
          "　　　M12 螺帽對角 ≈ 20.8 < 六角螺母牙頂孔 Ø21.7，螺母可從上方通過。\n"
          "② 組裝：承重軸鎖入孔位 → 穿 M12 螺桿、兩端螺帽鎖緊（預壓）→ 套槓片 → 壓板 → 六角螺母鎖緊；需防鬆可再印一顆做雙螺帽。\n"
          "③ 列印：承重軸法蘭朝下直立、Ø29 凸柱需支撐（或軸尖朝下）；螺母平放；填充 ≥ 50%、牆 5 圈。\n"
-         "　　　Ø24.5 軸牙底到中心孔壁厚約 4.25 mm，彎矩主要由 M12 鋼螺桿承受。",
+         "　　　Ø24.5 軸牙底到中心孔壁厚約 4.25 mm，彎矩主要由 M12 鋼螺桿承受。\n"
+         "④ 圓角：法蘭外緣上下 R2.5、軸根／凸柱根部內圓角 R2／R1.5（降低應力集中）、螺母六角邊 R3、壓板外緣 R1.5／內緣 R0.8。",
          fontsize=7.6, va="bottom", linespacing=1.5)
 pdf.savefig(fig); plt.close(fig)
 pdf.close()
