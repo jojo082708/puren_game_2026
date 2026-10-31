@@ -3,7 +3,7 @@
 Parts
   1. load_arm_multi_hole.stl   – 承重桿，多個 Ø29×P3 內螺紋孔（不同力臂）
   2. load_pin_Tr24.5x3.stl     – 承重軸，外螺紋 Tr24.5×3（槓片內徑 ≤ 26.35 可通過）
-  3. hex_nut_Tr24.5x3.stl      – 六角螺母 41 AF × 20，鎖緊槓片
+  3. star_knob_Tr24.5x3.stl    – 星形旋鈕螺母 Ø70（6 瓣）× 24，手鎖固定槓片
   4. clamp_plate_80x5.stl      – 壓板 Ø80×5，內孔 Ø25.5
 
 Run:  python3 build_parts.py   (needs: numpy, manifold3d, trimesh)
@@ -32,7 +32,16 @@ PIN_SPIGOT_L = 24.0
 FLANGE_D, FLANGE_T = 80.0, 8.0
 SHAFT_L = 158.0
 
-NUT_AF, NUT_H = 41.0, 20.0
+NUT_AF, NUT_H = 41.0, 20.0          # (old hex nut, kept for reference)
+# star knob nut (6 lobes, hand-tightened)
+KNOB_D = 70.0           # over lobes
+KNOB_H = 18.0           # star body height
+KNOB_LOBES = 6
+KNOB_LOBE_R = 9.5       # lobe tip radius
+KNOB_CORE_R = 20.0      # core circle (under the valleys)
+KNOB_VALLEY_R = 3.5     # concave finger-valley radius
+KNOB_EDGE_R_TOP, KNOB_EDGE_R_BOT = 5.0, 2.5   # edge rounds of the star body (domed top)
+KNOB_HUB_D, KNOB_HUB_H = 42.0, 6.0   # boss on the clamping side
 PLATE_D, PLATE_T, PLATE_BORE = 80.0, 5.0, 25.5
 
 # fillets / rounds (durability + looks)
@@ -221,6 +230,47 @@ def hex_nut():
     nut -= int_thread_cutter(SHAFT_D, SHAFT_P, NUT_H, 0.0, chamfer=1.5)
     return nut
 
+
+# ---------------------------------------------------------------- 3b. star knob nut
+def star_section():
+    """6 round lobes on a core circle; finger valleys = concave fillets tangent to the lobes."""
+    R = KNOB_D / 2
+    rc = R - KNOB_LOBE_R                              # lobe centre radius
+    cs = m3.CrossSection.circle(KNOB_CORE_R, 128)
+    for k in range(KNOB_LOBES):
+        a = 2 * math.pi * k / KNOB_LOBES
+        cs = cs + m3.CrossSection.circle(KNOB_LOBE_R, 64).translate((rc * math.cos(a), rc * math.sin(a)))
+    J = m3.JoinType.Round
+    v = KNOB_VALLEY_R
+    return cs.offset(v, J, circular_segments=64).offset(-v, J, circular_segments=64)
+
+def rounded_extrude(cs, h, r_bot, r_top, z0=0.0, steps=14):
+    """Extrude a (non-convex) section with rounded top/bottom edges (fine stair-step, below print layer height)."""
+    J = m3.JoinType.Round
+    parts = []
+    def layer(za, zb, inset):
+        sec = cs.offset(-inset, J, circular_segments=32) if inset > 1e-6 else cs
+        parts.append(m3.Manifold.extrude(sec, zb - za).translate((0, 0, za)))
+    zs = np.linspace(0, r_bot, steps + 1)
+    for i in range(steps):
+        zm = 0.5 * (zs[i] + zs[i + 1])
+        layer(z0 + zs[i], z0 + zs[i + 1] + 1e-3, r_bot - math.sqrt(max(r_bot**2 - (r_bot - zm)**2, 0)))
+    layer(z0 + r_bot, z0 + h - r_top, 0.0)
+    zs = np.linspace(h - r_top, h, steps + 1)
+    for i in range(steps):
+        zm = 0.5 * (zs[i] + zs[i + 1]) - (h - r_top)
+        layer(z0 + zs[i] - 1e-3, z0 + zs[i + 1], r_top - math.sqrt(max(r_top**2 - zm**2, 0)))
+    return m3.Manifold.batch_boolean(parts, m3.OpType.Add)
+
+def star_knob():
+    hub = rounded_disc(KNOB_HUB_D / 2, KNOB_HUB_H + 1.0, ro_bot=1.5)                 # z 0..7 (1 mm into star)
+    body = rounded_extrude(star_section(), KNOB_H, KNOB_EDGE_R_BOT, KNOB_EDGE_R_TOP, z0=KNOB_HUB_H)
+    fil = fillet_ring(KNOB_HUB_D / 2 - 0.05, KNOB_HUB_H, 2.0, up=False)               # hub -> star underside
+    knob = hub + body + fil
+    total = KNOB_HUB_H + KNOB_H
+    knob -= int_thread_cutter(SHAFT_D, SHAFT_P, total, 0.0, chamfer=1.5)
+    return knob
+
 # ---------------------------------------------------------------- 4. plate
 def clamp_plate():
     return rounded_disc(PLATE_D / 2, PLATE_T, PLATE_BORE / 2,
@@ -230,7 +280,7 @@ if __name__ == "__main__":
     parts = {
         "load_arm_multi_hole.stl": arm,
         "load_pin_Tr24.5x3.stl": pin,
-        "hex_nut_Tr24.5x3.stl": hex_nut,
+        "star_knob_Tr24.5x3.stl": star_knob,
         "clamp_plate_80x5.stl": clamp_plate,
     }
     for name, fn in parts.items():

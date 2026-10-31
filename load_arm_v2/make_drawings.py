@@ -130,9 +130,9 @@ fig.text(0.03, 0.035, "註：PETG、填充 ≥ 50%、牆 5 圈；平放列印（
 pdf.savefig(fig); plt.close(fig)
 
 # ======================================================= page 2 : pin / nut / plate / assembly
-pin, nut, plate, arm = L("load_pin_Tr24.5x3.stl"), L("hex_nut_Tr24.5x3.stl"), L("clamp_plate_80x5.stl"), L("load_arm_multi_hole.stl")
+pin, nut, plate, arm = L("load_pin_Tr24.5x3.stl"), L("star_knob_Tr24.5x3.stl"), L("clamp_plate_80x5.stl"), L("load_arm_multi_hole.stl")
 fig = plt.figure(figsize=(420 / 25.4, 297 / 25.4))
-frame(fig, "承重軸 Tr24.5×3 ＋ 六角螺母 ＋ 壓板", "PETG", "1:1.5")
+frame(fig, "承重軸 Tr24.5×3 ＋ 星形旋鈕螺母 ＋ 壓板", "PETG", "1:1.5")
 # pin section
 ax = view(fig, [0.03, 0.17, 0.25, 0.80], (-60, 60), (-50, 200), "承重軸 剖面 A-A")
 section(ax, pin, (0, 0, 0))
@@ -147,26 +147,23 @@ dim(ax, (-FLANGE_D / 2, -PIN_SPIGOT_L), (-FLANGE_D / 2, top), "190", off=-8, ver
 note(ax, (12, 100), "外螺紋 Tr24.5×3 右旋\n小徑 Ø21.0，牙深 1.75\n全長 158，兩端導角", (-58, 120))
 note(ax, (-6, 60), "中心孔 Ø12.5 貫穿\n（M12 全牙螺桿）", (-58, 70))
 note(ax, (-14, -12), "外螺紋 Ø29×P3\n長 24（鎖入承重桿）", (-58, -18))
-# nut views
-ax = view(fig, [0.30, 0.56, 0.22, 0.38], (-42, 35), (-38, 45), "六角螺母 俯視")
-hexr = NUT_AF / 2 / math.cos(math.radians(30))
-cdist = hexr - NUT_CORNER_R / math.cos(math.radians(30))
-hpts = []
-for k in range(6):
-    a0 = 60 * k
-    hpts += [(cdist * math.cos(math.radians(a0)) + NUT_CORNER_R * math.cos(math.radians(t)),
-              cdist * math.sin(math.radians(a0)) + NUT_CORNER_R * math.sin(math.radians(t))) for t in np.linspace(a0 - 30, a0 + 30, 8)]
-ax.add_patch(Polygon(hpts, fill=False, lw=LW))
-ax.add_patch(Circle((0, 0), NUT_AF / 2, fill=False, lw=THIN))
+# star knob views
+ax = view(fig, [0.30, 0.56, 0.22, 0.38], (-42, 42), (-44, 48), "星形旋鈕螺母 俯視")
+for poly in star_section().to_polygons():
+    ax.add_patch(Polygon(np.asarray(poly), closed=True, fill=False, lw=LW))
+ax.add_patch(Circle((0, 0), KNOB_HUB_D / 2, fill=False, lw=THIN, ls=(0, (5, 3))))
 ax.add_patch(Circle((0, 0), (SHAFT_D + 2 * FIT) / 2, fill=False, lw=THIN, ls=(0, (3, 2))))
 ax.add_patch(Circle((0, 0), (SHAFT_D - 3.5 + 2 * FIT) / 2, fill=False, lw=LW))
-center(ax, (-30, 0), (30, 0)); center(ax, (0, -28), (0, 28))
-dim(ax, (0, -NUT_AF / 2), (0, NUT_AF / 2), "對邊 41（41 mm 扳手）", off=-33, vertical=True)
-ax = view(fig, [0.30, 0.30, 0.22, 0.28], (-35, 35), (-22, 36), "六角螺母 剖面")
+center(ax, (-40, 0), (40, 0)); center(ax, (0, -36), (0, 36))
+dim(ax, (-KNOB_D / 2, 0), (KNOB_D / 2, 0), "Ø70（6 瓣，瓣端 R9.5、指槽 R3.5）", off=36)
+ax = view(fig, [0.30, 0.29, 0.22, 0.30], (-42, 42), (-32, 36), "星形旋鈕螺母 剖面")
 section(ax, nut, (0, 0, 0), normal=(0, 1, 0))
-center(ax, (0, -4), (0, 24))
-dim(ax, (hexr, 0), (hexr, NUT_H), "20", off=4, vertical=True)
-ax.text(0, -12, "內螺紋 Tr24.5×3 右旋（含列印間隙 0.35/邊）\n兩面 30° 倒角、孔口倒角 1.5、六角邊 R3", ha="center", fontsize=7.5)
+center(ax, (0, -4), (0, 28))
+KT = KNOB_HUB_H + KNOB_H
+dim(ax, (KNOB_D / 2, 0), (KNOB_D / 2, KT), "24", off=3, vertical=True)
+dim(ax, (-KNOB_HUB_D / 2, 0), (-KNOB_HUB_D / 2, KNOB_HUB_H), "6", off=-17, vertical=True)
+dim(ax, (-KNOB_HUB_D / 2, 0), (KNOB_HUB_D / 2, 0), "凸台 Ø42（壓在壓板上）", off=-5)
+ax.text(0, -11, "內螺紋 Tr24.5×3 右旋貫穿（含列印間隙 0.35/邊），孔口倒角 1.5\n上緣 R5（圓頂手感）、下緣 R2.5、凸台根部內圓角 R2", ha="center", va="top", fontsize=7.5)
 # plate
 ax = view(fig, [0.30, 0.15, 0.22, 0.16], (-48, 48), (-16, 20), "壓板 Ø80×5")
 ax.add_patch(Rectangle((-PLATE_D / 2, 0), (PLATE_D - PLATE_BORE) / 2, PLATE_T, fill=True, fc="0.85", ec="k", lw=LW))
@@ -193,18 +190,18 @@ for zz in (-10, ARM_T + FLANGE_T + SHAFT_L):
     ax.add_patch(Rectangle((-9, zz), 18, 10, fc="0.6", ec="k", lw=THIN))
 note(ax, (40, ARM_T + FLANGE_T + 50), "槓片 ×4：1.5 kg、Ø190 × 30\n內孔 26.35（Ø24.5 軸可滑入）", (40, -40))
 note(ax, (-30, zp + 2.5), "壓板 Ø80×5", (-123, 168))
-note(ax, (-20, zn + 10), "六角螺母 41AF×20：鎖緊槓片", (-123, 185))
+note(ax, (-20, zn + 10), "星形旋鈕螺母 Ø70×24：手鎖固定槓片", (-123, 185))
 note(ax, (8, ARM_T + FLANGE_T + SHAFT_L + 5), "M12 螺帽（頂）", (40, 205))
 note(ax, (8, -5), "M12 螺帽（底，桿件下方）", (40, -15))
 note(ax, (-6, 80), "M12 全牙螺桿\nL ≈ 200（190 + 兩端螺帽）", (-123, -40))
 note(ax, (-40, 10), "承重桿 P3 孔", (-123, 8))
 fig.text(0.03, 0.035,
          "註：① 原 Tr31 版頂端沉頭孔 Ø22 已取消（Ø24.5 軸小徑僅 21，放不下）→ M12 螺帽直接壓在軸端面；\n"
-         "　　　M12 螺帽對角 ≈ 20.8 < 六角螺母牙頂孔 Ø21.7，螺母可從上方通過。\n"
-         "② 組裝：承重軸鎖入孔位 → 穿 M12 螺桿、兩端螺帽鎖緊（預壓）→ 套槓片 → 壓板 → 六角螺母鎖緊；需防鬆可再印一顆做雙螺帽。\n"
+         "　　　M12 螺帽對角 ≈ 20.8 < 旋鈕螺母牙頂孔 Ø21.7，螺母可從上方通過。\n"
+         "② 組裝：承重軸鎖入孔位 → 穿 M12 螺桿、兩端螺帽鎖緊（預壓）→ 套槓片 → 壓板 → 星形旋鈕螺母用手鎖緊；需防鬆可再印一顆做雙螺帽。\n"
          "③ 列印：承重軸法蘭朝下直立、Ø29 凸柱需支撐（或軸尖朝下）；螺母平放；填充 ≥ 50%、牆 5 圈。\n"
          "　　　Ø24.5 軸牙底到中心孔壁厚約 4.25 mm，彎矩主要由 M12 鋼螺桿承受。\n"
-         "④ 圓角：法蘭外緣上下 R2.5、軸根／凸柱根部內圓角 R2／R1.5（降低應力集中）、螺母六角邊 R3、壓板外緣 R1.5／內緣 R0.8。",
+         "④ 圓角：法蘭外緣上下 R2.5、軸根／凸柱根部內圓角 R2／R1.5（降低應力集中）、旋鈕螺母上緣 R5／下緣 R2.5、壓板外緣 R1.5／內緣 R0.8。",
          fontsize=7.6, va="bottom", linespacing=1.5)
 pdf.savefig(fig); plt.close(fig)
 pdf.close()
