@@ -168,15 +168,15 @@ ax.add_patch(Rectangle((PLATE_BORE / 2, 0), (PLATE_D - PLATE_BORE) / 2, PLATE_T,
 dim(ax, (-PLATE_D / 2, PLATE_T), (PLATE_D / 2, PLATE_T), "Ø80", off=8)
 dim(ax, (-PLATE_BORE / 2, 0), (PLATE_BORE / 2, 0), "內孔 Ø25.5", off=-7)
 # assembly section (all from STL)
-ax = view(fig, [0.53, 0.18, 0.45, 0.78], (-120, 120), (-60, 210), "組合剖面（承重軸鎖在 P3，r = 200）")
+ax = view(fig, [0.53, 0.18, 0.45, 0.78], (-125, 125), (-60, 210), "組合剖面（承重軸鎖在 P3，r = 200）")
 xo = 200
 section(ax, arm, (xo, 0, 0), color="tab:orange", off=(-xo, 0))
 section(ax, pin, (0, 0, 0), color="tab:blue", off=(0, ARM_T))
 z = ARM_T + FLANGE_T
-for i in range(4):   # user's plates, illustrative 25 mm each, bore 26.35
+for i in range(4):   # user's plates: 1.5 kg, Ø190 × 30, bore 26.35
     for s in (-1, 1):
-        ax.add_patch(Rectangle((s * 26.35 / 2 if s > 0 else -60, z), 60 - 26.35 / 2, 25, fc="0.25", ec="k", lw=THIN))
-    z += 25
+        ax.add_patch(Rectangle((s * 26.35 / 2 if s > 0 else -95, z), 95 - 26.35 / 2, 30, fc="0.25", ec="k", lw=THIN))
+    z += 30
 zp = z
 section(ax, plate, (0, 0, 0), color="tab:green", off=(0, zp))
 zn = zp + PLATE_T
@@ -185,13 +185,13 @@ rod_bot, rod_top = -10 - 12, ARM_T + FLANGE_T + SHAFT_L + 12
 ax.add_patch(Rectangle((-6, rod_bot), 12, rod_top - rod_bot, fc="none", ec="0.3", lw=THIN, hatch="////"))
 for zz in (-10, ARM_T + FLANGE_T + SHAFT_L):
     ax.add_patch(Rectangle((-9, zz), 18, 10, fc="0.6", ec="k", lw=THIN))
-note(ax, (40, ARM_T + FLANGE_T + 50), "你的槓片 ×4（內徑 ≤ 26.35，Ø24.5 可滑入）\n圖示每片 25 厚，僅示意", (62, 150))
-note(ax, (30, zp + 2.5), "壓板 Ø80×5", (62, 125))
-note(ax, (20, zn + 10), "六角螺母 41AF×20：鎖緊槓片", (62, 140))
-note(ax, (8, ARM_T + FLANGE_T + SHAFT_L + 5), "M12 螺帽（頂）", (40, 200))
-note(ax, (8, -5), "M12 螺帽（底，桿件下方）", (30, -40))
-note(ax, (-6, 80), "M12 全牙螺桿\nL ≈ 200（190 + 兩端螺帽）", (-118, 95))
-note(ax, (-40, 15), "承重桿 P3 孔", (-118, 30))
+note(ax, (40, ARM_T + FLANGE_T + 50), "槓片 ×4：1.5 kg、Ø190 × 30\n內孔 26.35（Ø24.5 軸可滑入）", (40, -40))
+note(ax, (-30, zp + 2.5), "壓板 Ø80×5", (-123, 168))
+note(ax, (-20, zn + 10), "六角螺母 41AF×20：鎖緊槓片", (-123, 185))
+note(ax, (8, ARM_T + FLANGE_T + SHAFT_L + 5), "M12 螺帽（頂）", (40, 205))
+note(ax, (8, -5), "M12 螺帽（底，桿件下方）", (40, -15))
+note(ax, (-6, 80), "M12 全牙螺桿\nL ≈ 200（190 + 兩端螺帽）", (-123, -40))
+note(ax, (-40, 10), "承重桿 P3 孔", (-123, 8))
 fig.text(0.03, 0.035,
          "註：① 原 Tr31 版頂端沉頭孔 Ø22 已取消（Ø24.5 軸小徑僅 21，放不下）→ M12 螺帽直接壓在軸端面；\n"
          "　　　M12 螺帽對角 ≈ 20.8 < 六角螺母牙頂孔 Ø21.7，螺母可從上方通過。\n"
