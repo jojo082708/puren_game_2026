@@ -8,6 +8,7 @@
 | `clamp_plate_80x5.stl` | 壓板 Ø80×5，內孔 Ø25.5 |
 | `load_arm_v2_drawings.pdf` | A3 圖面兩張（承重桿；承重軸、螺母、壓板與組合剖面） |
 | `build_parts.py` / `make_drawings.py` | 產生上面檔案的程式（改參數後重跑） |
+| `cad/` | **text-to-cad 版**：build123d B-rep 模型、可編輯 **STEP** 檔、3MF、組合件（見 `cad/README.md`） |
 
 ```bash
 pip install numpy manifold3d trimesh scipy matplotlib
