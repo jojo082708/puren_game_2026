@@ -52,9 +52,11 @@ MOTORS = {
     "ak70": dict(boss_d=29.0, pilot_d=19.7, pilot_h=1.5,          # output face Ø30, Ø20×2 recess
                  screws=(6, 25.0, 0.0, 3.3, 6.5, 8.0),             # 6×M3 (thread 6.7 deep) -> M3×12
                  dowels=(3, 25.0, 30.0, 3.0, 6.0)),                # motor: 3×Ø3×3 dowel holes
+    # CubeMars AK60-39 V3.0 2D drawing: 3-M4 depth 4 on Ø30, 3-Ø4 +0.02/0 depth 3.5 on Ø28.5
+    # (the STEP models both only 1.5 deep). Grip 8.5 + M4×12 -> 3.5 engaged, 0.5 short of the bottom.
     "ak60": dict(boss_d=38.0, pilot_d=0.0, pilot_h=0.0,           # output face Ø39
-                 screws=(3, 30.0, 30.0, 4.5, 8.0, 10.0),           # 3×M4 -> M4×(10 + thread depth)
-                 dowels=(3, 28.5, 90.0, 4.0, 6.0)),                # motor: 3×Ø4×1.5 pockets
+                 screws=(3, 30.0, 30.0, 4.5, 8.0, 8.5),            # 3×M4×12
+                 dowels=(3, 28.5, 90.0, 4.0, 6.0)),                # Ø4×8 dowels: 3.5 in motor, 4.5 in arm
 }
 
 # --- S-level fixes
