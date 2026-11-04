@@ -62,12 +62,12 @@ for a, b in [("load_pin.1", "star_knob.1"), ("load_pin.1", "lock_knob.1"), ("loa
              ("load_pin.1", "m12_rod.1"), ("load_arm_ak70.1", "m12_rod.1")]:
     pair(a, b, False)
 
-# the keyed clamp plate cannot turn on the pin: rotate it 2° and it must collide with the flat
+# the keyed clamp plate cannot turn on the pin: rotate it 4° (free play is ~2.2°) and it must collide with the flat
 cp = P["clamp_plate.1"]
 c = cp.bounding_box().center()
-turned = bd.Pos(c.X, c.Y, 0) * bd.Rot(0, 0, 2) * bd.Pos(-c.X, -c.Y, 0) * cp
+turned = bd.Pos(c.X, c.Y, 0) * bd.Rot(0, 0, 4) * bd.Pos(-c.X, -c.Y, 0) * cp
 ov = sum(overlap_volume(x, y) for x in turned.solids() for y in P["load_pin.1"].solids())
-print(f"{'OK ' if ov > 0.01 else 'BAD'} clamp plate turned 2° hits the D-flat: {ov:.3f} mm3")
+print(f"{'OK ' if ov > 0.01 else 'BAD'} clamp plate turned 4° hits the D-flat: {ov:.3f} mm3")
 if ov <= 0.01:
     failures.append(("clamp_plate", "key"))
 

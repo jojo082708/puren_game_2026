@@ -60,7 +60,7 @@ MOTORS = {
 # --- S-level fixes
 SHAFT_L = 170.0                      # +12 for the lock knob
 SHAFT_FLAT = 11.0                    # D-flat on the shaft (distance from axis); keys the clamp plate
-PLATE_FLAT = 11.3                    # clamp plate's D-bore flat (0.3 clearance)
+PLATE_FLAT = 11.2                    # clamp plate D-bore flat (0.2 clearance: ~2.2° free turn)
 LOCK_KNOB_H = 12.0                   # thin star lock knob (jam nut), no boss
 # standard parts in the clamp path (steel)
 WASHER_BIG = (37.0, 13.0, 3.0)       # DIN 9021 M12 under the arm: OD > socket mouth Ø32.7
